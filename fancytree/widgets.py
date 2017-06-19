@@ -63,11 +63,12 @@ class FancyTreeWidget(Widget):
             value = [value]
         has_id = attrs and 'id' in attrs
         final_attrs = self.build_attrs(attrs, name=name)
+        output = [u'<input type="text" name="%s-filter" placeholder="Filter">' % attrs['id']]
         if has_id:
-            output = [u'<div id="%s"></div>' % attrs['id']]
+            output.append(u'<div id="%s"></div>' % attrs['id'])
             id_attr = u' id="%s_checkboxes"' % (attrs['id'])
         else:
-            output = [u'<div></div>']
+            output.append(u'<div></div>')
             id_attr = u''
         output.append(u'<ul class="fancytree_checkboxes"%s>' % id_attr)
         str_values = set([force_unicode(v) for v in value])
@@ -98,11 +99,22 @@ class FancyTreeWidget(Widget):
                 $(".fancytree_checkboxes").hide();
                 $(function() {
                     $("#%(id)s").fancytree({
+                        extensions: ["filter"],
                         checkbox: true,
+                        activeVisible: true,
                         selectMode: %(select_mode)d,
                         source: %(js_var)s,
                         debugLevel: %(debug)d,
                         icons: %(icons)s,
+                        clickFolderMode: 2,
+                        filter: {
+                          autoApply: true,  // Re-apply last filter if lazy data is loaded
+                          counter: false,  // Show a badge with number of matching child nodes near parent icons
+                          fuzzy: false,  // Match single characters in order, e.g. 'fb' will match 'FooBar'
+                          hideExpandedCounter: true,  // Hide counter badge, when parent is expanded
+                          highlight: true,  // Highlight matches by wrapping inside <mark> tags
+                          mode: "hide"  // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
+                        },
                         select: function(event, data) {
                             $('#%(id)s_checkboxes').find('input[type=checkbox]').prop('checked', false);
                             var selNodes = data.tree.getSelectedNodes();
@@ -124,6 +136,20 @@ class FancyTreeWidget(Widget):
                             }
                         }
                     });
+
+                    $("input[name=%(id)s-filter]").keyup(function(e){
+                        var tree = $("#%(id)s").fancytree("getTree");
+                        var match = $(this).val();
+                        if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
+                          tree.clearFilter();
+                          return;
+                        }
+                        tree.filterBranches(match, {
+                          autoExpand: true,
+                          leavesOnly: false
+                        });
+                    });
+
                 });
                 """ % {
                     'id': attrs['id'],
