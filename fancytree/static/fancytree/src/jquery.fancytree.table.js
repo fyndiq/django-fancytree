@@ -9,8 +9,8 @@
  * Released under the MIT license
  * https://github.com/mar10/fancytree/wiki/LicenseInfo
  *
- * @version 2.8.1
- * @date 2015-03-01T20:28
+ * @version 2.12.0
+ * @date 2015-09-10T20:06
  */
 
 ;(function($, window, document, undefined) {
@@ -116,12 +116,15 @@ $.ui.fancytree.registerExtension({
 		tree.ariaPropName = "tr";
 		this.nodeContainerAttrName = "tr";
 
+		// #489: make sure $container is set to <table>, even if ext-dnd is listed before ext-table
+		tree.$container = $table;
+
 		this._superApply(arguments);
 
 		// standard Fancytree created a root UL
 		$(tree.rootNode.ul).remove();
 		tree.rootNode.ul = null;
-		tree.$container = $table;
+//		tree.$container = $table;
 		// Add container to the TAB chain
 		this.$container.attr("tabindex", this.options.tabbable ? "0" : "-1");
 		if(this.options.aria){
@@ -166,7 +169,7 @@ $.ui.fancytree.registerExtension({
 		// $.ui.fancytree.debug("*** nodeRender " + node + ", isRoot=" + isRootNode, "tr=" + node.tr, "hcp=" + ctx.hasCollapsedParents, "parent.tr=" + (node.parent && node.parent.tr));
 		if( !isRootNode ){
 			if(!node.tr){
-				if( ctx.hasCollapsedParents /*&& !node.parent.tr*/ ) {
+				if( ctx.hasCollapsedParents && !deep ) {
 					// #166: we assume that the parent will be (recursively) rendered
 					// later anyway.
 					node.debug("nodeRender ignored due to unrendered parent");
@@ -292,7 +295,8 @@ $.ui.fancytree.registerExtension({
 		$(node.tr).removeClass("fancytree-node");
 		// indent
 		indent = (node.getLevel() - 1) * opts.table.indentation;
-		$(node.span).css({marginLeft: indent + "px"});
+		$(node.span).css({paddingLeft: indent + "px"});  // #460
+		// $(node.span).css({marginLeft: indent + "px"});
 	 },
 	/* Expand node, return Deferred.promise. */
 	nodeSetExpanded: function(ctx, flag, opts) {
@@ -347,6 +351,10 @@ $.ui.fancytree.registerExtension({
 	treeClear: function(ctx) {
 		this.nodeRemoveChildMarkup(this._makeHookContext(this.rootNode));
 		return this._superApply(arguments);
+	},
+	treeDestroy: function(ctx) {
+		this.$container.find("tbody").empty();
+		this.$source && this.$source.removeClass("ui-helper-hidden");
 	}
 	/*,
 	treeSetFocus: function(ctx, flag) {
